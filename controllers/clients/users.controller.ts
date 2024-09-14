@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Users from "../../models/users.model";
 import Roles from "../../models/roles.model";
 import md5 from "md5";
+import { generateToken } from "../../helpers/jwtHelper.js";
 import { ROLE, STATUS, User } from "../../config/system.config";
 
 export const login = async (req: Request, res: Response) => {
@@ -23,14 +24,22 @@ export const login = async (req: Request, res: Response) => {
           message: "Password is incorrect",
         });
       }
+      // Generate JWT token
+      const token = generateToken({
+        username: findEmail.username,
+        password: findEmail.password,
+      });
+
       // success
       return res.status(200).json({
         message: "Login successfully",
         data: {
+          id: findEmail.id,
           username: findEmail.username,
           email: findEmail.email,
           roleId: findEmail.roleId,
           avatar: findEmail.avatar,
+          token: token,
         },
       });
     } else {

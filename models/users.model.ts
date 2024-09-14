@@ -15,7 +15,7 @@ const usersSchema = new mongoose.Schema(
     },
     slug: {
       type: String,
-      slug: "fullName",
+      slug: "username",
     },
     deleted: {
       type: Boolean,

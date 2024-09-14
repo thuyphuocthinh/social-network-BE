@@ -16,6 +16,12 @@ export interface User {
   avatar: string;
 }
 
+export enum TASK_STATUS {
+  TODO = "todo",
+  PROGRESS = "progress",
+  DONE = "done",
+}
+
 export const SYSTEM = {
   API_V1: "/api/v1",
 };
