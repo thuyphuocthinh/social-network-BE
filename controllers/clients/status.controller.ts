@@ -7,6 +7,7 @@ export const getListTaskStatus = async (req: Request, res: Response) => {
       deleted: false,
     });
     res.status(200).json({
+      success: true,
       data: listTaskStatus,
     });
   } catch (error) {

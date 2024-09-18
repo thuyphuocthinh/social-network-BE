@@ -12,5 +12,6 @@ export interface Task {
 
 export interface AllTask {
   status: String;
+  statusCode: String;
   list: {}[];
 }

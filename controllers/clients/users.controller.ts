@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Users from "../../models/users.model";
 import Roles from "../../models/roles.model";
 import md5 from "md5";
+import jwt from "jsonwebtoken";
 import { generateToken } from "../../helpers/jwtHelper.js";
 import { ROLE, STATUS, User } from "../../config/system.config";
 
@@ -16,11 +17,13 @@ export const login = async (req: Request, res: Response) => {
       });
       if (!findEmail) {
         return res.status(400).json({
+          success: false,
           message: "Email does not exist",
         });
       }
       if (findEmail.password !== md5(password)) {
         return res.status(400).json({
+          success: false,
           message: "Password is incorrect",
         });
       }
@@ -32,6 +35,7 @@ export const login = async (req: Request, res: Response) => {
 
       // success
       return res.status(200).json({
+        success: true,
         message: "Login successfully",
         data: {
           id: findEmail.id,
@@ -43,7 +47,8 @@ export const login = async (req: Request, res: Response) => {
         },
       });
     } else {
-      return res.status(400).json({
+      return res.status(200).json({
+        success: false,
         message: "Email and password are required",
       });
     }
@@ -66,7 +71,8 @@ export const register = async (req: Request, res: Response) => {
       });
       if (findEmail) {
         return res.status(400).json({
-          message: "Email already exist",
+          success: false,
+          message: "Email already exists",
         });
       }
       const roleUser = await Roles.findOne({
@@ -83,17 +89,25 @@ export const register = async (req: Request, res: Response) => {
       };
       const newRecord = new Users(newUser);
       await newRecord.save();
+      const token = generateToken({
+        username: newRecord.username,
+        password: newRecord.password,
+      });
       return res.status(200).json({
+        success: true,
         message: "Registerred successfully",
         data: {
+          id: newRecord.id,
           email: newRecord.email,
           username: newRecord.username,
           avatar: newRecord.avatar,
-          roleId: findEmail.roleId,
+          roleId: newRecord.roleId,
+          token: token,
         },
       });
     } else {
       return res.status(400).json({
+        success: false,
         message: "Email, password, username are required",
       });
     }
@@ -101,6 +115,45 @@ export const register = async (req: Request, res: Response) => {
     console.log(error);
     return res.status(400).json({
       message: "Server error",
+    });
+  }
+};
+
+export const verifyToken = async (req: Request, res: Response) => {
+  try {
+    if (req.body) {
+      const secretKey = process.env.SECRET_KEY;
+      const token = req.body.token;
+      if (token) {
+        jwt.verify(token, secretKey, (err: any, playload: any) => {
+          if (err) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid token",
+            });
+          } else {
+            return res.status(200).json({
+              success: true,
+              message: "Valid token",
+            });
+          }
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Token is not provided",
+        });
+      }
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Token is not provided",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({
+      message: "Error server",
     });
   }
 };

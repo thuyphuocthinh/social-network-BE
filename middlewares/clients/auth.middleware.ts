@@ -13,7 +13,8 @@ export const authMiddleware = async (
       const token = authHeader.split(" ")[1];
       jwt.verify(token, secretKey, (err: any, playload: any) => {
         if (err) {
-          return res.status(403).json({
+          return res.status(400).json({
+            success: false,
             message: "Invalid token",
           });
         } else {
@@ -21,7 +22,8 @@ export const authMiddleware = async (
         }
       });
     } else {
-      res.status(401).json({
+      res.status(400).json({
+        success: false,
         message: "Token is not provided",
       });
     }
