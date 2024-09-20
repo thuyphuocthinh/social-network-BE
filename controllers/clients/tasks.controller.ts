@@ -5,40 +5,54 @@ import { timeValidation } from "../../validation/clients/timeValidation.validati
 import Tasks from "../../models/tasks.model";
 import Status from "../../models/status.model";
 import { searchHelper } from "../../helpers/searchHelper";
+import Labels from "../../models/labels.model";
 
 export const getAllTasksByUser = async (req: Request, res: Response) => {
   try {
-    if (req.params.userId) {
-      const userId: string = req.params.userId;
-      const statusList = await Status.find({
-        deleted: false,
+    const userId: string | undefined = req.params.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide user id",
       });
+    }
 
-      const tasksList = await Tasks.find({
-        deleted: false,
-        createdBy: userId,
-      }).sort({
-        createdAt: "desc"
-      });
+    // Fetch statuses and tasks concurrently
+    const [statusList, tasksList] = await Promise.all([
+      Status.find({ deleted: false }),
+      Tasks.find({ deleted: false, createdBy: userId }).sort({ createdAt: "desc" }),
+    ]);
 
-      const tasks: AllTask[] = [];
-
-      for (const status of statusList) {
+    const tasks: AllTask[] = await Promise.all(
+      statusList.map(async (status) => {
         const tasksByStatus: AllTask = {
-          status: undefined,
-          statusCode: undefined,
+          status: status.title,
+          statusCode: status.code,
           list: [],
         };
-        tasksByStatus.status = status.title;
-        tasksByStatus.statusCode = status.code;
-        for (const task of tasksList) {
-          if (task.status === status.code && !task.deleted) {
-            const taskReturn = {
+
+        const filteredTasks = tasksList.filter(
+          (task) => task.status === status.code && !task.deleted
+        );
+
+        // Fetch label titles concurrently for each task
+        tasksByStatus.list = await Promise.all(
+          filteredTasks.map(async (task) => {
+            const labelTitles = await Promise.all(
+              task.label.map(async (labelId) => {
+                const labelItem = await Labels.findOne({ _id: labelId, deleted: false });
+                return labelItem?.title || "Unknown Label"; // Handle label not found
+              })
+            );
+
+            return {
               id: task.id,
               title: task.title,
               content: task.content,
               createdBy: task.createdBy,
               label: task.label,
+              labelTitle: labelTitles,
               timeStart: task.timeStart,
               timeEnd: task.timeEnd,
               image: task.image,
@@ -47,26 +61,22 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               createdAt: task.createdAt,
               deleted: task.deleted,
             };
-            tasksByStatus.list.push(taskReturn);
-          }
-        }
-        tasks.push(tasksByStatus);
-      }
+          })
+        );
 
-      return res.status(200).json({
-        success: true,
-        data: tasks,
-      });
-    } else {
-      return res.status(200).json({
-        success: false,
-        message: "Please provide user id",
-      });
-    }
+        return tasksByStatus;
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: tasks,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(400).json({
-      message: "Error server",
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 };
@@ -387,8 +397,8 @@ export const recoverOneTask = async (req: Request, res: Response) => {
 
 export const recoverManyTasks = async (req: Request, res: Response) => {
   try {
-    if (req.body.listTaskId) {
-      const listTaskId: string[] = req.body.listTaskId;
+    if (req.body) {
+      const listTaskId: string[] = req.body;
       for (const taskId of listTaskId) {
         const task = await Tasks.findOne({
           _id: taskId,
@@ -448,7 +458,7 @@ export const getTaskDetailById = async (req: Request, res: Response) => {
         },
       });
     } else {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
         message: "Please provide taskId",
       });
@@ -463,24 +473,190 @@ export const getTaskDetailById = async (req: Request, res: Response) => {
 
 export const search = async (req: Request, res: Response) => {
   try {
-    if(req.params.userId) {
-      const keyword: any = req.query.keyword;
-      const userId: string = req.params.userId;
-      const regex: RegExp = searchHelper(keyword || "");
-      const tasks = await Tasks.find({
-        createdBy: userId,
-        deleted: false,
-        title: regex,
-        content: regex,
-      });
-      return res.status(200).json({ success: true, data: tasks });
-    } else {
-      return res.status(200).json({ success: false, message: "Please provide user id" });
+    const userId: string | undefined = req.params.userId;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Please provide user ID" });
     }
+
+    const keyword: string | any = req.query.keyword || "";
+    const regex: RegExp = searchHelper(keyword);
+
+    // Use $or to allow searching in either title or content
+    const tasks = await Tasks.find({
+      createdBy: userId,
+      deleted: false,
+      $or: [
+        { title: regex },
+        { content: regex },
+      ],
+    });
+
+    // Fetch label titles concurrently
+    const tasksList = await Promise.all(
+      tasks.map(async (task) => {
+        const labelTitles = await Promise.all(
+          task.label.map(async (labelId) => {
+            const labelItem = await Labels.findOne({ _id: labelId, deleted: false });
+            return labelItem?.title || "Unknown Label"; // Handle missing label gracefully
+          })
+        );
+
+        return {
+          id: task.id,
+          title: task.title,
+          content: task.content,
+          createdBy: task.createdBy,
+          label: task.label,
+          labelTitle: labelTitles,
+          timeStart: task.timeStart,
+          timeEnd: task.timeEnd,
+          image: task.image,
+          backgroundColor: task.backgroundColor,
+          status: task.status,
+          createdAt: task.createdAt,
+          deleted: task.deleted,
+        };
+      })
+    );
+
+    return res.status(200).json({ success: true, data: tasksList });
   } catch (error) {
-    console.log(error);
-    return res.status(400).json({
-      message: "Error server",
+    console.error("Error in search: ", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 };
+
+export const detachLabel = async (req: Request, res: Response) => {
+  try {
+    if(req.params.labelId && req.params.taskId) {
+      const labelId: string = req.params.labelId;
+      const taskId: string = req.params.taskId;
+      // check exist
+      const label = await Labels.findOne({
+        _id: labelId,
+        deleted: false,
+      })
+      if(!label) {
+        return res.status(400).json({
+          success: false,
+          message: "Label does not exist"
+        })
+      }
+      const task = await Tasks.findOne({
+        _id: taskId,
+        deleted: false
+      })
+      if(!task) {
+        return res.status(400).json({
+          success: false,
+          message: "Task does not exist"
+        })
+      }
+      const findLabelInTask = task.label.includes(labelId);
+      const findTaskInLabel = label.tasks.includes(taskId);
+      if(findLabelInTask && findTaskInLabel) {
+        // exist => detach
+        await Tasks.updateOne({
+          _id: taskId
+        }, {
+          $pull: {label: labelId}
+        })
+        await Labels.updateOne({
+          _id: labelId
+        }, {
+          $pull: {tasks: taskId}
+        })
+        return res.status(200).json({
+          success: true,
+          message: "Detached label successfully"
+        })
+        
+      } else {
+        // not exist => error
+        return res.status(400).json({
+          success: false,
+          message: "Task is not attached label"
+        })
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide taskId, labelId"
+      })
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Error server"
+    })
+  }
+}
+
+export const attachLabel = async (req: Request, res: Response) => {
+  try {
+    if(req.params.labelId && req.params.taskId) {
+      const labelId: string = req.params.labelId;
+      const taskId: string = req.params.taskId;
+      // check exist
+      const label = await Labels.findOne({
+        _id: labelId,
+        deleted: false,
+      })
+      if(!label) {
+        return res.status(400).json({
+          success: false,
+          message: "Label does not exist"
+        })
+      }
+      const task = await Tasks.findOne({
+        _id: taskId,
+        deleted: false
+      })
+      if(!task) {
+        return res.status(400).json({
+          success: false,
+          message: "Task does not exist"
+        })
+      }
+      const findLabelInTask = task.label.includes(labelId);
+      const findTaskInLabel = label.tasks.includes(taskId);
+      if(findLabelInTask && findTaskInLabel) {
+        // exist => error
+        return res.status(400).json({
+          success: false,
+          message: "Task already attached label"
+        })
+      } else {
+        // not exist => attach
+        await Tasks.updateOne({
+          _id: taskId
+        }, {
+          $push: {label: labelId}
+        })
+        await Labels.updateOne({
+          _id: labelId
+        }, {
+          $push: {tasks: taskId}
+        })
+        return res.status(200).json({
+          success: true,
+          message: "Attached label successfully"
+        })
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide taskId, labelId"
+      })
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Error server"
+    })
+  }
+}

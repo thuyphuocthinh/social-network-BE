@@ -24,5 +24,7 @@ router.patch("/changeStatus", controller.changeTaskStatus);
 router.patch("/recoverTask/:taskId", controller.recoverOneTask);
 router.patch("/recoverManyTask", controller.recoverManyTasks);
 router.get("/search/:userId", controller.search);
+router.patch("/detachLabel/:taskId/:labelId", controller.detachLabel);
+router.patch("/attachLabel/:taskId/:labelId", controller.attachLabel);
 
 export default router;
