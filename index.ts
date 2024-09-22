@@ -24,7 +24,12 @@ const start = async () => {
   app.use(cookieParser("TPT"));
 
   // cors
-  app.use(cors());
+  app.use(cors({
+    origin: 'http://localhost:5173', // No trailing slash
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // If you need to send cookies or other credentials
+    allowedHeaders: ['Authorization', 'Content-Type', 'Cache-Control'], // Ensure 'Authorization' is allowed
+  }));
 
   // routes
   appRoutes(app);

@@ -2,17 +2,19 @@ import mongoose from "mongoose";
 import slug from "mongoose-slug-updater";
 mongoose.plugin(slug);
 
-const usersSchema = new mongoose.Schema(
+const postsSchema = new mongoose.Schema(
   {
-    username: String,
-    email: String,
-    password: String,
-    roleId: String,
-    avatar: String,
-    cover: String,
-    listPostId: [],
-    listFriendId: [],
-    listPostShareId: [],
+    userId: String,
+    content: String,
+    like: {
+        type: Number,
+        default: 0
+    },
+    share: {
+        type: Number,
+        default: 0
+    },
+    listCommentId: [],
     status: {
       type: String,
       default: "active",
@@ -30,5 +32,5 @@ const usersSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Users = mongoose.model("Users", usersSchema, "users");
-export default Users;
+const Posts = mongoose.model("Posts", postsSchema, "posts");
+export default Posts;

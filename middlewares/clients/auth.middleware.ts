@@ -1,33 +1,54 @@
-import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
+// src/middlewares/authMiddleware.ts
 
-export const authMiddleware = async (
+import { NextFunction, Request, Response } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+
+export const authMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const authHeader: string = req.headers.authorization;
+    const authHeader: string | undefined = req.headers.authorization;
     const secretKey = process.env.SECRET_KEY;
-    if (authHeader) {
-      const token = authHeader.split(" ")[1];
-      jwt.verify(token, secretKey, (err: any, playload: any) => {
-        if (err) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid token",
-          });
-        } else {
-          next();
-        }
-      });
-    } else {
-      res.status(400).json({
+    // console.log(authHeader);
+    // Ensure that secretKey is set
+    if (!secretKey) {
+      return res.status(500).json({
         success: false,
-        message: "Token is not provided",
+        message: "Server configuration error: Secret key not set",
       });
     }
+
+    // Ensure authHeader exists and has correct format
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is not provided or invalid format",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Verify token
+    jwt.verify(token, secretKey, (err: any, payload: JwtPayload | undefined) => {
+      if (err) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token",
+        });
+      }
+
+      // Optionally attach user info to request
+      // req.user = payload;
+
+      next(); // Proceed to the next middleware or route handler
+    });
   } catch (error) {
-    console.log(error);
+    console.error("Authentication error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };

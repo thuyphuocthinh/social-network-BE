@@ -5,6 +5,7 @@ import md5 from "md5";
 import jwt from "jsonwebtoken";
 import { generateToken } from "../../helpers/jwtHelper.js";
 import { ROLE, STATUS, User } from "../../config/system.config";
+import Posts from "../../models/posts.model";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -54,7 +55,7 @@ export const login = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    return res.status(400).json({
+    return res.status(500).json({
       message: "Server error",
     });
   }
@@ -113,7 +114,7 @@ export const register = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    return res.status(400).json({
+    return res.status(500).json({
       message: "Server error",
     });
   }
@@ -152,8 +153,183 @@ export const verifyToken = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    return res.status(400).json({
+    return res.status(500).json({
       message: "Error server",
     });
   }
 };
+
+export const update = async (req: Request, res: Response) => {
+  try {
+    const {userId, username, oldPassword, newPassword} = req.body;
+    if(!userId) {
+      return res.status(400).json({
+        message: "Please provide user id"
+      });
+    }
+
+    const user = await Users.findOne({_id: userId, deleted: false});
+    if(user) {
+      const updateInfo: {
+        username?: string,
+        password?: string
+      } = {};
+
+      if(username) {
+        updateInfo.username = username;
+      }
+
+      if(oldPassword && newPassword) {
+        if(md5(oldPassword) !== user.password) {
+          return res.status(400).json({
+            message: "Please provide a correct old password",
+          });
+        }
+        updateInfo.password = md5(newPassword);
+      }
+
+      
+      await Users.updateOne({_id: userId, deleted: false}, updateInfo);
+  
+      return res.status(200).json({
+        message: "Updated successfully",
+        success: true,
+        data: {
+          id: user.id,
+          username: username,
+          email: user.email,
+          roleId: user.roleId,
+          avatar: user.avatar
+        }
+      })
+    } else {
+      return res.status(400).json({
+        message: "Please provide a valid user id",
+      });
+    }
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+}
+
+export const getDetailById = async(req: Request, res: Response) => {
+  try {
+    const userId: string = req.params.userId;
+    if(!userId) {
+      return res.status(400).json({
+        message: "Please provide user id",
+      });
+    }
+
+    const user = await Users.findOne({_id: userId, status: STATUS.ACTIVE, deleted: false});
+
+    const [listPosts, listFriends] = await Promise.all([
+      Posts.find({ _id: { $in: user.listPostId}, deleted: false, status: STATUS.ACTIVE}).sort({createdAt: "desc"}),
+      Users.find({ _id: { $in: user.listFriendId, $ne: user.id}, deleted: false, status: STATUS.ACTIVE}).limit(9).select("-password"),
+    ])
+
+    const userReturn = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      roleId: user.roleId,
+      avatar: user.avatar,
+      cover: user.cover,
+      slug: user.slug,
+      listPosts,
+      listFriends
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: userReturn
+    })
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Error server",
+    })
+  }
+}
+
+export const updateCover = async(req: Request, res: Response) => {
+  try {
+    const userId: string = req.body.userId;
+    const cover: string = req.body.cover;
+
+    if(!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please send user id"
+      });
+    }
+
+    if(!cover) {
+      return res.status(400).json({
+        success: false,
+        message: "Please send cover"
+      });
+    }
+
+    await Users.updateOne({
+      _id: userId
+    }, {
+      cover: cover
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: "Updated cover successfully"
+    });
+    
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error server"
+    })
+  }
+}
+
+export const updateAvatar = async (req: Request, res: Response) => {
+  try {
+    const userId: string = req.body.userId;
+    const avatar: string = req.body.avatar;
+
+    if(!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please send user id"
+      });
+    }
+
+    if(!avatar) {
+      return res.status(400).json({
+        success: false,
+        message: "Please send avatar"
+      });
+    }
+
+    await Users.updateOne({
+      _id: userId
+    }, {
+      avatar: avatar
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Updated avatar successfully"
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error server"
+    })
+  }
+}
