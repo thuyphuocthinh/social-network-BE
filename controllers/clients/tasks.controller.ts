@@ -41,8 +41,10 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
           filteredTasks.map(async (task) => {
             const labelTitles = await Promise.all(
               task.label.map(async (labelId) => {
-                const labelItem = await Labels.findOne({ _id: labelId, deleted: false });
-                return labelItem?.title || "Unknown Label"; // Handle label not found
+                if(labelId) {
+                  const labelItem = await Labels.findOne({ _id: labelId, deleted: false });
+                  return labelItem?.title || "Unknown Label"; // Handle label not found
+                }
               })
             );
 

@@ -19,6 +19,7 @@ const start = async () => {
 
   // bodyparser
   app.use(bodyParser.json());
+  app.use(express.urlencoded({extended: true}));
 
   // cookie-parser
   app.use(cookieParser("TPT"));

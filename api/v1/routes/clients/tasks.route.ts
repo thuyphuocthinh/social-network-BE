@@ -1,8 +1,11 @@
 import express, { Express } from "express";
+import multer from 'multer';
 import * as controller from "../../../../controllers/clients/tasks.controller";
+import * as uploadMiddleware from "../../../../middlewares/clients/upload.middleware";
 const router: express.Router = express.Router();
+const upload = multer();
 
-router.post("/create", controller.createTask);
+router.post("/create", upload.single("image"), uploadMiddleware.uploadSingle, controller.createTask);
 router.get("/getAllTasksByUser/:userId", controller.getAllTasksByUser);
 router.get(
   "/getAllTasksDeletedByUser/:userId",
@@ -19,7 +22,7 @@ router.patch(
   "/deleteManyTaskPermanently",
   controller.deleteManyTaskPermanently
 );
-router.patch("/updateTask", controller.updateTask);
+router.patch("/updateTask", upload.single("image"), uploadMiddleware.uploadSingle, controller.updateTask);
 router.patch("/changeStatus", controller.changeTaskStatus);
 router.patch("/recoverTask/:taskId", controller.recoverOneTask);
 router.patch("/recoverManyTask", controller.recoverManyTasks);

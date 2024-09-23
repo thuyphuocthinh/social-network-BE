@@ -8,7 +8,10 @@ const tasksSchema = new mongoose.Schema(
     title: String,
     content: String,
     createdBy: String,
-    label: [],
+    label: {
+      type: Array,
+      default: []
+    },
     timeStart: {
       type: Date,
       default: new Date(),
