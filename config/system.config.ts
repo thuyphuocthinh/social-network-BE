@@ -13,7 +13,7 @@ export interface User {
   password: string;
   username: string;
   roleId: string;
-  avatar: string;
+  avatar?: string;
 }
 
 export enum TASK_STATUS {

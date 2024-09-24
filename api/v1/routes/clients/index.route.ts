@@ -7,6 +7,7 @@ import tasksRoutes from "./tasks.route";
 import labelsRoutes from "./labels.route";
 import usersRoutes from "./users.route";
 import remindersRoutes from "./reminders.route";
+import postsRoutes from "./posts.route";
 
 export const appRoutes = (app: Express) => {
   app.use(`${SYSTEM.API_V1}/auth`, authRoutes);
@@ -15,4 +16,5 @@ export const appRoutes = (app: Express) => {
   app.use(`${SYSTEM.API_V1}/labels`, authMiddleware, labelsRoutes);
   app.use(`${SYSTEM.API_V1}/users`, authMiddleware, usersRoutes);
   app.use(`${SYSTEM.API_V1}/reminder`, authMiddleware, remindersRoutes);
+  app.use(`${SYSTEM.API_V1}/posts`, authMiddleware, postsRoutes);
 };

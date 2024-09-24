@@ -21,7 +21,7 @@ const postsSchema = new mongoose.Schema(
     },
     slug: {
       type: String,
-      slug: "username",
+      slug: "content",  
     },
     deleted: {
       type: Boolean,
