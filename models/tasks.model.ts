@@ -12,6 +12,10 @@ const tasksSchema = new mongoose.Schema(
       type: Array,
       default: []
     },
+    reminderId: {
+      type: String,
+      default: ""
+    },
     timeStart: {
       type: Date,
       default: new Date(),
@@ -42,7 +46,7 @@ const tasksSchema = new mongoose.Schema(
     },
     deletedAt: Date,
     updatedBy: String,
-    deletedBY: String,
+    deletedBy: String,
   },
   { timestamps: true }
 );

@@ -6,6 +6,8 @@ import Tasks from "../../models/tasks.model";
 import Status from "../../models/status.model";
 import { searchHelper } from "../../helpers/searchHelper";
 import Labels from "../../models/labels.model";
+import Reminders from "../../models/reminders.model";
+import { dateToString } from "../../helpers/date";
 
 export const getAllTasksByUser = async (req: Request, res: Response) => {
   try {
@@ -48,6 +50,14 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               })
             );
 
+            let reminder: any;
+            if(task.reminderId) {
+              reminder = await Reminders.findOne({
+                _id: task.reminderId,
+                deleted: false
+              }) 
+            }
+
             return {
               id: task.id,
               title: task.title,
@@ -55,6 +65,8 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               createdBy: task.createdBy,
               label: task.label,
               labelTitle: labelTitles,
+              remindedAtString: reminder ? dateToString(reminder.remindedAt) : "",
+              remindedAtDate: reminder,
               timeStart: task.timeStart,
               timeEnd: task.timeEnd,
               image: task.image,
@@ -62,6 +74,7 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               status: task.status,
               createdAt: task.createdAt,
               deleted: task.deleted,
+              reminderId: reminder ? reminder.id : ""
             };
           })
         );
@@ -301,6 +314,8 @@ export const updateTask = async (req: Request, res: Response) => {
   try {
     if (req.body) {
       const taskId: string = req.body.id;
+      req.body.label = req.body.label.split(",");
+      if(req.body.label[0] === '') req.body.label = [];
       await Tasks.updateOne(
         {
           _id: taskId,

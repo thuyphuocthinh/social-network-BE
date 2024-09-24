@@ -6,6 +6,7 @@ import statusRoutes from "./status.route";
 import tasksRoutes from "./tasks.route";
 import labelsRoutes from "./labels.route";
 import usersRoutes from "./users.route";
+import remindersRoutes from "./reminders.route";
 
 export const appRoutes = (app: Express) => {
   app.use(`${SYSTEM.API_V1}/auth`, authRoutes);
@@ -13,4 +14,5 @@ export const appRoutes = (app: Express) => {
   app.use(`${SYSTEM.API_V1}/status`, authMiddleware, statusRoutes);
   app.use(`${SYSTEM.API_V1}/labels`, authMiddleware, labelsRoutes);
   app.use(`${SYSTEM.API_V1}/users`, authMiddleware, usersRoutes);
+  app.use(`${SYSTEM.API_V1}/reminder`, authMiddleware, remindersRoutes);
 };
