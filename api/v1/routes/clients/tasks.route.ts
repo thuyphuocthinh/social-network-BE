@@ -29,5 +29,6 @@ router.patch("/recoverManyTask", controller.recoverManyTasks);
 router.get("/search/:userId", controller.search);
 router.patch("/detachLabel/:taskId/:labelId", controller.detachLabel);
 router.patch("/attachLabel/:taskId/:labelId", controller.attachLabel);
+router.get("/getTasksRemindedByUser/:userId", controller.getTasksReminded);
 
 export default router;

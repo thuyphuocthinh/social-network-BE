@@ -7,7 +7,8 @@ import Status from "../../models/status.model";
 import { searchHelper } from "../../helpers/searchHelper";
 import Labels from "../../models/labels.model";
 import Reminders from "../../models/reminders.model";
-import { dateToString } from "../../helpers/date";
+import moment from "moment";
+import { io } from "../..";
 
 export const getAllTasksByUser = async (req: Request, res: Response) => {
   try {
@@ -65,7 +66,7 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               createdBy: task.createdBy,
               label: task.label,
               labelTitle: labelTitles,
-              remindedAtString: reminder ? dateToString(reminder.remindedAt) : "",
+              remindedAtString: reminder ? moment(reminder.remindedAt).format("DD/MM/YYYY hh:mm A") : "",
               remindedAtDate: reminder,
               timeStart: task.timeStart,
               timeEnd: task.timeEnd,
@@ -675,5 +676,70 @@ export const attachLabel = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: "Error server"
     })
+  }
+}
+
+export const getTasksReminded = async (req: Request, res: Response) => {
+  try {
+    const userId: string = req.params.userId;
+    if(!userId) {
+      return res.status(400).json({
+        message: "Please provide user id"
+      });
+    }
+    
+    const tasksReminded = await Tasks.find({
+      deleted: false,
+      reminderId: {$exists: true, $ne: ""},
+      createdBy: userId
+    })
+
+    const tasksRemindedReturn = await Promise.all(tasksReminded.map(async (task) => {
+      const labelTitles = await Promise.all(
+        task.label.map(async (labelId) => {
+          if(labelId) {
+            const labelItem = await Labels.findOne({ _id: labelId, deleted: false });
+            return labelItem?.title || "Unknown Label"; // Handle label not found
+          }
+        })
+      );
+
+      let reminder: any;
+      if(task.reminderId) {
+        reminder = await Reminders.findOne({
+          _id: task.reminderId,
+          deleted: false
+        }) 
+      }
+
+      return {
+        id: task.id,
+        title: task.title,
+        content: task.content,
+        createdBy: task.createdBy,
+        label: task.label,
+        labelTitle: labelTitles,
+        remindedAtString: reminder ? moment(reminder.remindedAt).format("DD/MM/YYYY, hh:mm A") : "",
+        remindedAtDate: reminder,
+        timeStart: task.timeStart,
+        timeEnd: task.timeEnd,
+        image: task.image,
+        backgroundColor: task.backgroundColor,
+        status: task.status,
+        createdAt: task.createdAt,
+        deleted: task.deleted,
+        reminderId: reminder ? reminder.id : ""
+      };
+    }))
+
+    return res.status(200).json({
+      success: true,
+      data: tasksRemindedReturn
+    })
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Error server"
+    });
   }
 }

@@ -4,6 +4,7 @@ import { Reminder } from "../../interfaces/reminders.interface";
 import Reminders from "../../models/reminders.model";
 import { timeValidation } from "../../validation/clients/timeValidation.validation";
 import Tasks from "../../models/tasks.model";
+import { io } from "../..";
 
 export const create = async (req: Request, res: Response) => {
     try {
@@ -71,12 +72,21 @@ export const deleteById = async (req: Request, res: Response) => {
                 message: "Please provide reminder id"
             });
         }
+        
         const reminderId: String = req.params.reminderId;
-        await Reminders.updateOne({
-            _id: reminderId
-        }, {
-            deleted: true
-        });
+        await Promise.all([
+            await Reminders.updateOne({
+                _id: reminderId
+            }, {
+                deleted: true
+            }),
+            await Tasks.updateOne({
+                reminderId: req.params.reminderId
+            }, {
+                reminderId: ""
+            })
+        ]);
+
         return res.status(200).json({
             success: true,
             message: "Deleted reminder successfully"
@@ -130,5 +140,14 @@ export const updateById = async (req: Request, res: Response) => {
 }
 
 export const remind = async (req: Request, res: Response) => {
-
+    try {
+        return res.status(200).json({
+            message: "success"
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Error server"
+        });
+    }
 }

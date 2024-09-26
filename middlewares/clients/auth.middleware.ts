@@ -40,7 +40,7 @@ export const authMiddleware = (
       }
 
       // Optionally attach user info to request
-      // req.user = payload;
+      req["user"] = payload;
 
       next(); // Proceed to the next middleware or route handler
     });

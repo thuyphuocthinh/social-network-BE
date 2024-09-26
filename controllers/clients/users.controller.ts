@@ -5,7 +5,6 @@ import md5 from "md5";
 import jwt from "jsonwebtoken";
 import { generateToken } from "../../helpers/jwtHelper.js";
 import { ROLE, STATUS, User } from "../../config/system.config";
-import Posts from "../../models/posts.model";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -30,7 +29,8 @@ export const login = async (req: Request, res: Response) => {
       }
       // Generate JWT token
       const token = generateToken({
-        username: findEmail.username,
+        id: findEmail.id,
+        username: findEmail.email,
         password: findEmail.password,
       });
 
@@ -160,13 +160,8 @@ export const verifyToken = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const {userId, username, oldPassword, newPassword} = req.body;
-    if(!userId) {
-      return res.status(400).json({
-        message: "Please provide user id"
-      });
-    }
-
     const user = await Users.findOne({_id: userId, deleted: false});
+    
     if(user) {
       const updateInfo: {
         username?: string,
@@ -225,8 +220,7 @@ export const getDetailById = async(req: Request, res: Response) => {
 
     const user = await Users.findOne({_id: userId, status: STATUS.ACTIVE, deleted: false});
 
-    const [listPosts, listFriends] = await Promise.all([
-      Posts.find({ _id: { $in: user.listPostId}, deleted: false, status: STATUS.ACTIVE}).sort({createdAt: "desc"}),
+    const [listFriends] = await Promise.all([
       Users.find({ _id: { $in: user.listFriendId, $ne: user.id}, deleted: false, status: STATUS.ACTIVE}).limit(9).select("-password"),
     ])
 
@@ -238,7 +232,6 @@ export const getDetailById = async(req: Request, res: Response) => {
       avatar: user.avatar,
       cover: user.cover,
       slug: user.slug,
-      listPosts,
       listFriends
     }
 
@@ -259,13 +252,6 @@ export const updateCover = async(req: Request, res: Response) => {
   try {
     const userId: string = req.body.userId;
     const cover: string = req.body.cover;
-
-    if(!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "Please send user id"
-      });
-    }
 
     if(!cover) {
       return res.status(400).json({
@@ -299,13 +285,6 @@ export const updateAvatar = async (req: Request, res: Response) => {
     const userId: string = req.body.userId;
     const avatar: string = req.body.avatar;
 
-    if(!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "Please send user id"
-      });
-    }
-
     if(!avatar) {
       return res.status(400).json({
         success: false,
@@ -329,5 +308,36 @@ export const updateAvatar = async (req: Request, res: Response) => {
       success: false,
       message: "Error server"
     })
+  }
+}
+
+export const getAllFriends = async (req: Request, res: Response) => {
+  try {
+    const userId: string = req.params.userId;
+    const skipItem: number = Number(req.params.skipItem) || 0;
+
+    if(!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide user id"
+      });
+    }
+
+    const user = await Users.findOne({_id: userId, status: STATUS.ACTIVE, deleted: false});
+
+    const [listFriends] = await Promise.all([
+      Users.find({ _id: { $in: user.listFriendId, $ne: user.id}, deleted: false, status: STATUS.ACTIVE}).select("-password"),
+    ])
+
+    return res.status(200).json({
+      success: true,
+      data: listFriends
+    })
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Error server"
+    });
   }
 }

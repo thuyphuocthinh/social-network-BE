@@ -1,4 +1,4 @@
-import { Express, Request, Response } from "express";
+import { Express } from "express";
 import { SYSTEM } from "../../../../config/system.config";
 import { authMiddleware } from "../../../../middlewares/clients/auth.middleware";
 import authRoutes from "./auth.route";
