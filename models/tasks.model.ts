@@ -44,6 +44,10 @@ const tasksSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    pinned: {
+      type: Boolean,
+      default: false
+    },
     deletedAt: Date,
     updatedBy: String,
     deletedBy: String,

@@ -5,8 +5,6 @@ import Tasks from "../models/tasks.model";
 // Keep track of tasks that have already been scheduled
 const activeReminders = new Set();
 const reminderTimeouts = new Map();
-
-
 export const getListTaskReminded = async (userId: string) => {
     const tasksReminded = await Tasks.find({
         deleted: false,
@@ -79,7 +77,6 @@ export const deleteReminder = (taskId: string, userId: string) => {
     getListTaskReminded(userId);
 }
 
-
 // Helper function to handle reminder notification and updates
 const handleReminder = async (task, reminder) => {
     try {
@@ -102,3 +99,8 @@ const handleReminder = async (task, reminder) => {
     }
 };
 
+// stop reminding
+export const stopReminding = () => {
+    activeReminders.clear();
+    reminderTimeouts.clear();
+}

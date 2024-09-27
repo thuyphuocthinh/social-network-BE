@@ -8,7 +8,6 @@ import { searchHelper } from "../../helpers/searchHelper";
 import Labels from "../../models/labels.model";
 import Reminders from "../../models/reminders.model";
 import moment from "moment";
-import { io } from "../..";
 
 export const getAllTasksByUser = async (req: Request, res: Response) => {
   try {
@@ -24,7 +23,7 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
     // Fetch statuses and tasks concurrently
     const [statusList, tasksList] = await Promise.all([
       Status.find({ deleted: false }),
-      Tasks.find({ deleted: false, createdBy: userId }).sort({ createdAt: "desc" }),
+      Tasks.find({ deleted: false, createdBy: userId }).sort({  pinned: -1, createdAt: "desc" }),
     ]);
 
     const tasks: AllTask[] = await Promise.all(
@@ -75,7 +74,8 @@ export const getAllTasksByUser = async (req: Request, res: Response) => {
               status: task.status,
               createdAt: task.createdAt,
               deleted: task.deleted,
-              reminderId: reminder ? reminder.id : ""
+              reminderId: reminder ? reminder.id : "",
+              pinned: task.pinned ? task.pinned : false
             };
           })
         );
@@ -741,5 +741,59 @@ export const getTasksReminded = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Error server"
     });
+  }
+}
+
+export const pinTask = async (req: Request, res: Response) => {
+  try {
+    const taskId: string = req.params.taskId;
+    if(!taskId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide task id"
+      });
+    }
+
+    await Tasks.updateOne({_id: taskId, deleted: false}, {
+      pinned: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Pinned task successfully"
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server error"
+    })
+  }
+}
+
+export const unpinTask = async (req: Request, res: Response) => {
+  try {
+    const taskId: string = req.params.taskId;
+    if(!taskId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide task id"
+      });
+    }
+
+    await Tasks.updateOne({_id: taskId, deleted: false}, {
+      pinned: false
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Unpinned task successfully"
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server error"
+    })
   }
 }

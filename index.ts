@@ -65,6 +65,9 @@ const start = async () => {
       const userId: string = data.userId;
       schedule.deleteReminder(taskId, userId);
     });
+    socket.on("stop_remind_event", () => {
+      schedule.stopReminding();
+    })
   })
 
 

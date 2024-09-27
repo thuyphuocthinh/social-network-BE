@@ -30,5 +30,8 @@ router.get("/search/:userId", controller.search);
 router.patch("/detachLabel/:taskId/:labelId", controller.detachLabel);
 router.patch("/attachLabel/:taskId/:labelId", controller.attachLabel);
 router.get("/getTasksRemindedByUser/:userId", controller.getTasksReminded);
+router.patch("/pin/:taskId", controller.pinTask);
+router.patch("/unpin/:taskId", controller.unpinTask);
+
 
 export default router;
