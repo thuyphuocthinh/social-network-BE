@@ -4,7 +4,6 @@ import { Reminder } from "../../interfaces/reminders.interface";
 import Reminders from "../../models/reminders.model";
 import { timeValidation } from "../../validation/clients/timeValidation.validation";
 import Tasks from "../../models/tasks.model";
-import { io } from "../..";
 
 export const create = async (req: Request, res: Response) => {
     try {

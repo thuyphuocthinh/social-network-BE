@@ -1,0 +1,9 @@
+@url_dev=http://localhost:3000/api/v1/
+### notify
+POST {{url_dev}}notify
+Content-Type: application/json
+
+{
+    "channelFromClient": "email",
+    "message": "This is an email from server"
+}

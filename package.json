@@ -17,6 +17,9 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.0.0",
+    "amqplib": "^0.10.4",
+    "backend": "file:",
     "body-parser": "^1.20.3",
     "cloudinary": "^2.5.0",
     "cookie-parser": "1.4.6",
@@ -29,7 +32,10 @@
     "mongoose": "^8.6.1",
     "mongoose-slug-updater": "^3.3.0",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
     "socket.io": "^4.8.0",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "websocket": "^1.0.35",
+    "ws": "^8.18.0"
   }
 }

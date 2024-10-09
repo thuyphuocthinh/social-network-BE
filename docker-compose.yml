@@ -1,0 +1,10 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "15672:15672" # RabbitMQ Management UI
+      - "5672:5672" # AMQP port
+      - "15674:15674" # WebSTOMP port
+    environment:
+      RABBITMQ_PLUGINS_ENABLE: "rabbitmq_management rabbitmq_web_stomp"
